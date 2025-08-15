@@ -18,6 +18,7 @@ namespace DocFxTocGenerator.FileService;
 public class FileInfoService
 {
     private readonly bool _camelCasing;
+    private readonly bool _useHeadingTitle;
     private readonly IFileService _fileService;
     private readonly ILogger _logger;
 
@@ -25,11 +26,13 @@ public class FileInfoService
     /// Initializes a new instance of the <see cref="FileInfoService"/> class.
     /// </summary>
     /// <param name="camelCasing">Use camel casing for titles.</param>
+    /// <param name="useHeadingTitle">Use the first H1 heading from markdown files as the display name instead of filename.</param>
     /// <param name="fileService">File service.</param>
     /// <param name="logger">Logger.</param>
-    public FileInfoService(bool camelCasing, IFileService fileService, ILogger logger)
+    public FileInfoService(bool camelCasing, bool useHeadingTitle, IFileService fileService, ILogger logger)
     {
         _camelCasing = camelCasing;
+        _useHeadingTitle = useHeadingTitle;
         _fileService = fileService;
         _logger = logger;
     }
@@ -69,7 +72,7 @@ public class FileInfoService
             Debug.WriteLine($"Folder '{folder.Path}' File '{filedata.Name}' Sequence '{filedata.Sequence}'");
         }
 
-        var title = GetFileDisplayName(file, _camelCasing);
+        var title = GetFileDisplayName(file, _camelCasing, _useHeadingTitle);
         if (folder.OverrideList.TryGetValue(fname, out string? name))
         {
             // override the display name
@@ -91,15 +94,21 @@ public class FileInfoService
     /// </summary>
     /// <param name="filePath">Path to the file.</param>
     /// <param name="camelCase">Camel case the title (capitalize first letter).</param>
+    /// <param name="useHeadingTitle">Use the first H1 heading from markdown files as the display name instead of filename.</param>
     /// <returns>A cleaned string replacing - and _ as well as non authorized characters.</returns>
-    public string GetFileDisplayName(string filePath, bool camelCase)
+    public string GetFileDisplayName(string filePath, bool camelCase, bool useHeadingTitle)
     {
         string name = Path.GetFileNameWithoutExtension(filePath);
 
         if (Path.GetExtension(filePath).Equals(".md", StringComparison.OrdinalIgnoreCase))
         {
-            // For markdownfile, open the file, read the line up to the first #, extract the tile
-            name = GetMarkdownTitle(filePath);
+            if (useHeadingTitle)
+            {
+                // For markdownfile, open the file, read the line up to the first #, extract the tile
+                name = GetMarkdownTitle(filePath);
+            }
+
+            // else: use filename as name (default behavior)
         }
         else if (filePath.EndsWith("swagger.json", StringComparison.OrdinalIgnoreCase))
         {
@@ -171,15 +180,19 @@ public class FileInfoService
             var child = h1.Inline!.Descendants<LiteralInline>().FirstOrDefault();
             if (child != null)
             {
-                title = markdown.Substring(child.Span.Start, h1.Span.Length - (child.Span.Start - h1.Span.Start));
+                // Calculate the length from the child's start to the end of the heading
+                int length = h1.Span.End - child.Span.Start;
+                title = markdown.Substring(child.Span.Start, length);
             }
             else if (h1.Inline!.FirstChild != null)
             {
                 // fallback for complex headers, like "# `text with quotes`" and such
-                title = markdown.Substring(h1.Inline.FirstChild.Span.Start, h1.Span.Length - (h1.Inline.FirstChild.Span.Start - h1.Span.Start));
+                // Calculate the length from the first child's start to the end of the heading
+                int length = h1.Span.End - h1.Inline.FirstChild.Span.Start;
+                title = markdown.Substring(h1.Inline.FirstChild.Span.Start, length);
             }
 
-            return title;
+            return title.Trim();
         }
 
         // in case we couldn't get an H1 from markdown, return the filepath sanitized.

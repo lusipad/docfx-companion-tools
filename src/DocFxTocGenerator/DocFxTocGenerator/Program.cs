@@ -60,6 +60,9 @@ multiTocOption.AddAlias("-m");
 var camelCaseOption = new Option<bool>(
     name: "--camelCase",
     description: "Use camel casing for titles.");
+var useHeadingTitleOption = new Option<bool>(
+    name: "--useHeadingTitle",
+    description: "Use the first H1 heading from markdown files as the display name instead of filename.");
 
 // deprecated options
 var deprecatedIndexOption = new Option<bool>(
@@ -98,6 +101,7 @@ rootCommand.AddOption(folderReferenceOption);
 rootCommand.AddOption(orderingOption);
 rootCommand.AddOption(multiTocOption);
 rootCommand.AddOption(camelCaseOption);
+rootCommand.AddOption(useHeadingTitleOption);
 
 // deprecated: replaced by indexing flag
 rootCommand.AddOption(deprecatedIndexOption);
@@ -120,6 +124,7 @@ rootCommand.SetHandler(async (context) =>
         context.ParseResult.GetValueForOption(orderingOption),
         context.ParseResult.GetValueForOption(multiTocOption),
         context.ParseResult.GetValueForOption(camelCaseOption),
+        context.ParseResult.GetValueForOption(useHeadingTitleOption),
         context.ParseResult.GetValueForOption(deprecatedIndexOption),
         context.ParseResult.GetValueForOption(deprecatedNoIndexWithOneFileOption));
 
@@ -144,7 +149,8 @@ rootCommand.SetHandler(async (context) =>
         context.ParseResult.GetValueForOption(folderReferenceOption),
         context.ParseResult.GetValueForOption(orderingOption),
         context.ParseResult.GetValueForOption(multiTocOption),
-        context.ParseResult.GetValueForOption(camelCaseOption));
+        context.ParseResult.GetValueForOption(camelCaseOption),
+        context.ParseResult.GetValueForOption(useHeadingTitleOption));
 });
 
 return await rootCommand.InvokeAsync(args);
@@ -160,7 +166,8 @@ async Task<ReturnCode> GenerateTocAsync(
     TocFolderReferenceStrategy folderReferenceStrategy,
     TocOrderStrategy orderStrategy,
     int tocDepth,
-    bool camelCasing)
+    bool camelCasing,
+    bool useHeadingTitle)
 {
     // setup services
     ILogger logger = GetLogger();
@@ -169,7 +176,7 @@ async Task<ReturnCode> GenerateTocAsync(
     try
     {
         // first, retrieve data for documentation from the files
-        ContentInventoryAction retrieval = new(docsFolder, useOrder, useIngore, useOverride, camelCasing, fileService, logger);
+        ContentInventoryAction retrieval = new(docsFolder, useOrder, useIngore, useOverride, camelCasing, useHeadingTitle, fileService, logger);
         ReturnCode ret = await retrieval.RunAsync();
 
         if (ret == 0 && retrieval.RootFolder != null)
@@ -215,6 +222,7 @@ void LogParameters(
     TocOrderStrategy orderStrategy,
     int tocDepth,
     bool camelCasing,
+    bool useHeadingTitle,
     bool generateIndex,
     bool noIndexWithOneFile)
 {
@@ -242,6 +250,7 @@ void LogParameters(
     logger!.LogInformation($"Order strategy  : {orderStrategy}");
     logger!.LogInformation($"TOC depth       : {tocDepth}{(tocDepth > 0 ? string.Empty : " (1 TOC hierarchy)")}");
     logger!.LogInformation($"Camel casing    : {camelCasing}");
+    logger!.LogInformation($"Use heading title: {useHeadingTitle}");
 }
 
 void SetLogLevel(InvocationContext context)

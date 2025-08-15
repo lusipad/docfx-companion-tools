@@ -22,6 +22,7 @@ public class ContentInventoryAction
     private readonly bool _useIgnore;
     private readonly bool _useOverride;
     private readonly bool _camelCasing;
+    private readonly bool _useHeadingTitle;
 
     private readonly IFileService? _fileService;
     private readonly ConfigFilesService _configService;
@@ -39,6 +40,7 @@ public class ContentInventoryAction
     /// <param name="useIgnore">Use the .ignore configuration per directory.</param>
     /// <param name="useOverride">Use the .override configuration per directory.</param>
     /// <param name="camelCasing">Use camel casing for titles.</param>
+    /// <param name="useHeadingTitle">Use the first H1 heading from markdown files as the display name instead of filename.</param>
     /// <param name="fileService">File service.</param>
     /// <param name="logger">Logger.</param>
     public ContentInventoryAction(
@@ -47,6 +49,7 @@ public class ContentInventoryAction
         bool useIgnore,
         bool useOverride,
         bool camelCasing,
+        bool useHeadingTitle,
         IFileService fileService,
         ILogger logger)
     {
@@ -56,11 +59,12 @@ public class ContentInventoryAction
         _useIgnore = useIgnore;
         _useOverride = useOverride;
         _camelCasing = camelCasing;
+        _useHeadingTitle = useHeadingTitle;
 
         _fileService = fileService;
         _logger = logger;
         _configService = new(fileService, logger);
-        _fileDataService = new(camelCasing, fileService, logger);
+        _fileDataService = new(camelCasing, useHeadingTitle, fileService, logger);
     }
 
     /// <summary>

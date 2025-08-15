@@ -45,7 +45,7 @@ public class EnsureIndexAction
         _fileService = fileService;
         _logger = logger;
         _indexService = new(fileService, logger);
-        _fileDataService = new(_camelCasing, fileService, logger);
+        _fileDataService = new(_camelCasing, false, fileService, logger);
     }
 
     /// <summary>
