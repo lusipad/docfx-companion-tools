@@ -1,4 +1,4 @@
-# Digital Manufacturing Platform
+# 数字制造平台
 
 [![中文](./.attachments/zh.png) 中文文档](./zh/index.md)
 
