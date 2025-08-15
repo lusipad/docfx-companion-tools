@@ -45,7 +45,34 @@
 > [!NOTE]
 > 如果您在本地运行 **pack** 脚本，文件会被更改（*deploy\chocolatey\docfx-companion-tools.nuspec* 和 *deploy\chocolatey\tools\chocolateyinstall.ps1*）。最好不要将这些提交到仓库中，尽管这不是秘密信息。下次运行仍会覆盖正确的值。
 
-## 版本发布和发布到 Chocolatey
+## 🔄 GitHub Flow & 自动发布
+
+### 自动 EXE 发布
+我们现在支持通过 GitHub Flow 自动发布 Windows EXE 版本：
+
+#### 方法一：通过 Git 标签（推荐）
+```bash
+# 创建并推送版本标签
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+#### 方法二：手动触发
+访问 GitHub Actions 页面，运行 "Release EXE on Tag" 工作流。
+
+### 自动化功能
+- ✅ 构建所有工具为 Windows 单文件 EXE
+- ✅ 创建包含所有工具的 ZIP 包
+- ✅ 在 GitHub 上创建 Release
+- ✅ 发布到 NuGet
+- ✅ 自动生成变更日志
+
+### 下载 EXE 版本
+发布完成后，您可以在 [GitHub Releases](https://github.com/lusipad/docfx-companion-tools/releases) 页面下载 `tools.zip` 文件，解压后即可使用所有工具。
+
+详细信息请参考：[GitHub Flow 文档](.github/GITHUB_FLOW.md)
+
+## 传统发布流程
 
 如果您有一个或多个 PR 并想发布新版本，只需确保所有 PR 都根据需要标记（见上文）并合并到主分支中。在主分支上手动运行手动 **Release & Publish** 工作流。这将提升版本，创建发布并向 Chocolatey 发布新包。
 

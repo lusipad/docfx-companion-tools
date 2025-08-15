@@ -1,0 +1,185 @@
+# Automatically build and release exe version when a tag is created
+name: Release EXE on Tag
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag to release (e.g., v1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  release-exe:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.x
+
+      # Install and Setup GitVersion
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v3.0.0
+        with:
+          versionSpec: '5.x'
+
+      # Step id is used as reference for the output values
+      - name: Use GitVersion to determine the version
+        id: gitversion 
+        uses: gittools/actions/gitversion/execute@v3.0.0
+        with:
+          useConfigFile: true
+
+      # Extract version from tag if triggered by tag push
+      - name: Extract version from tag
+        id: extract_version
+        if: github.event_name == 'push'
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = $tag.Substring(1) # Remove 'v' prefix
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+          echo "tag=$tag" >> $env:GITHUB_OUTPUT
+
+      # Use manual input version if triggered manually
+      - name: Set version from manual input
+        id: manual_version
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          $tag = "${{ github.event.inputs.tag_name }}"
+          $version = $tag.Substring(1) # Remove 'v' prefix
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+          echo "tag=$tag" >> $env:GITHUB_OUTPUT
+
+      # Set final version
+      - name: Set final version
+        id: final_version
+        run: |
+          if ("${{ github.event_name }}" -eq "push") {
+            echo "version=${{ steps.extract_version.outputs.version }}" >> $env:GITHUB_OUTPUT
+            echo "tag=${{ steps.extract_version.outputs.tag }}" >> $env:GITHUB_OUTPUT
+          } else {
+            echo "version=${{ steps.manual_version.outputs.version }}" >> $env:GITHUB_OUTPUT
+            echo "tag=${{ steps.manual_version.outputs.tag }}" >> $env:GITHUB_OUTPUT
+          }
+
+      # Clean and prepare output directory
+      - name: Clean output directory
+        run: |
+          if (Test-Path -Path "./output") {
+            Remove-Item "./output" -Recurse -Force
+          }
+          if (Test-Path -Path "./tools.zip") {
+            Remove-Item "./tools.zip" -Force
+          }
+          New-Item -ItemType Directory -Path "./output" -Force
+
+      # Build all dotnet projects as single exe's
+      - name: Build executables
+        run: |
+          foreach ($proj in (Get-ChildItem -Recurse src\*\*.csproj -Exclude *.Test.*)) {
+            Write-Host "Building $($proj.FullName)"
+            & dotnet publish $proj.FullName -c Release -r win-x64 /p:PublishSingleFile=true /p:CopyOutputSymbolsToPublishDirectory=false --self-contained false -o ./output
+            Write-Host "Packing $($proj.FullName)"
+            & dotnet pack $proj.FullName -c Release -p:PackAsTool=true -o ./artifacts
+          }
+
+      # Remove generated XML documentation files
+      - name: Clean up build artifacts
+        run: |
+          Remove-Item "./output/*.xml" -Force -ErrorAction SilentlyContinue
+          # Copy license to the folder
+          Copy-Item LICENSE ./output
+
+      # Create zip file
+      - name: Create zip archive
+        run: |
+          Compress-Archive -Path "./output/*" -DestinationPath "./tools.zip" -Force
+
+      # Create the CHANGELOG for this release
+      - name: Build Changelog
+        id: github_release
+        uses: mikepenz/release-changelog-builder-action@v1
+        with:
+          configuration: "./changelog-config.json"
+          fromTag: ${{ steps.gitversion.outputs.VersionSourceSha }}
+          toTag: ${{ steps.gitversion.outputs.Sha }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Create GitHub release with exe zip file
+      - name: Create release
+        uses: ncipollo/release-action@v1
+        with:
+          skipIfReleaseExists: true
+          artifacts: "./tools.zip"
+          body: |
+            ## 🚀 EXE Release
+            
+            This release contains standalone Windows executable files for all DocFX Companion Tools.
+            
+            ### What's included:
+            - DocAssembler.exe - Documentation assembly tool
+            - DocFxTocGenerator.exe - Table of contents generator  
+            - DocLanguageTranslator.exe - Documentation language translator
+            - DocLinkChecker.exe - Documentation link checker
+            - DocFxOpenApi.exe - OpenAPI converter
+            
+            ### Installation:
+            1. Download the `tools.zip` file
+            2. Extract the zip file to your desired location
+            3. The executables are ready to use (no additional dependencies required)
+            
+            ---
+            
+            ${{steps.github_release.outputs.changelog}}
+          tag: ${{ steps.final_version.outputs.tag }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          name: "Release ${{ steps.final_version.outputs.version }}"
+
+      # Publish NuGet packages
+      - name: Publish to NuGet
+        run: |
+          foreach($file in (Get-ChildItem "./artifacts" -Recurse -Include *.nupkg)) {
+              dotnet nuget push $file --api-key "${{ secrets.NUGET_TOOLS }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          }
+
+      # Create release summary
+      - name: Create release summary
+        run: |
+          $summary = @"
+          ## 🎉 Release Complete!
+          
+          **Version:** ${{ steps.final_version.outputs.version }}
+          **Tag:** ${{ steps.final_version.outputs.tag }}
+          
+          ### What was done:
+          - ✅ Built all tools as Windows executables
+          - ✅ Created zip archive with all executables
+          - ✅ Published release to GitHub
+          - ✅ Published NuGet packages
+          
+          ### Download:
+          📦 [Download tools.zip](https://github.com/${{ github.repository }}/releases/download/${{ steps.final_version.outputs.tag }}/tools.zip)
+          
+          ### Usage:
+          After extracting the zip file, you can run any tool directly from the command line:
+          ```bash
+          DocAssembler --help
+          DocFxTocGenerator --help
+          DocLanguageTranslator --help
+          DocLinkChecker --help
+          DocFxOpenApi --help
+          ```
+          "@
+          
+          echo "$summary" >> $env:GITHUB_STEP_SUMMARY
