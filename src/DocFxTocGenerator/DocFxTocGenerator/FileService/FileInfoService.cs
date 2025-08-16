@@ -175,24 +175,20 @@ public class FileInfoService
 
         if (h1 != null)
         {
-            string title = string.Empty;
-
-            var child = h1.Inline!.Descendants<LiteralInline>().FirstOrDefault();
-            if (child != null)
+            // Extract the full text content from the heading
+            // This approach gets all text content including links, bold text, etc.
+            if (h1.Inline != null)
             {
-                // Calculate the length from the child's start to the end of the heading
-                int length = h1.Span.End - child.Span.Start;
-                title = markdown.Substring(child.Span.Start, length);
-            }
-            else if (h1.Inline!.FirstChild != null)
-            {
-                // fallback for complex headers, like "# `text with quotes`" and such
-                // Calculate the length from the first child's start to the end of the heading
-                int length = h1.Span.End - h1.Inline.FirstChild.Span.Start;
-                title = markdown.Substring(h1.Inline.FirstChild.Span.Start, length);
-            }
+                // Get the complete text content from the heading's span
+                int start = h1.Inline.Span.Start;
+                int length = h1.Inline.Span.End - start;
+                string title = markdown.Substring(start, length);
 
-            return title.Trim();
+                // Remove leading # and whitespace
+                title = title.TrimStart('#', ' ', '\t');
+
+                return title.Trim();
+            }
         }
 
         // in case we couldn't get an H1 from markdown, return the filepath sanitized.

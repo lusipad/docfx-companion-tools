@@ -40,6 +40,7 @@ Options:
   -m, --multitoc <multitoc>                                   指示在树中多深为这些文件夹生成 toc 文件。
                                                               深度 0 仅是根（默认行为）。
   --camelCase                                                 使用驼峰命名法作为标题。
+  -l, --language <language>                                   帮助消息和输出的语言。支持的值：en, english, zh, chinese, 中文。默认基于系统区域设置（非英语系统为中文）。
   --version                                                   显示版本信息
   -?, -h, --help                                              显示帮助和使用信息
 ```

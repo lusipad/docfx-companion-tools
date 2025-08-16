@@ -1,99 +1,99 @@
-# DocFX 伴侣工具
+# DocFX Companion Tools
 
-这个仓库包含一系列工具、模板、技巧和方法，让您的 [DocFX](https://dotnet.github.io/docfx/) 体验更加美好。
+This repository contains a set of tools, templates, tips and tricks to make your [DocFX](https://dotnet.github.io/docfx/) experience even better.
 
 [English](README.md) | [中文文档](README.zh.md)
 
-## 工具
+## Tools
 
-* [DocAssembler 🆕](./src/DocAssembler)：从磁盘各个位置组装文档和资源，并将它们汇集到一个地方。可以重构结构，其中的链接会更改为正确的位置。
-* [DocFxTocGenerator](./src/DocFxTocGenerator)：为 DocFX 生成 YAML 格式的目录（TOC）。具有配置文件顺序和文档及文件夹名称的功能。
-* [DocLinkChecker](./src/DocLinkChecker)：验证文档中的链接并检查 `.attachments` 文件夹中的孤立附件。该工具会指示是否存在错误或警告，因此可以在 CI 管道中使用。它还可以自动清理孤立附件。并且可以验证表格语法。
-* [DocLanguageTranslator](./src/DocLanguageTranslator)：允许自动生成和翻译缺失文件，或识别多语言模式目录中的缺失文件。
-* [DocFxOpenApi](./src/DocFxOpenApi)：将现有的 [OpenAPI](https://www.openapis.org/) 规范文件转换为与 DocFX 兼容的格式（OpenAPI v2 JSON 文件）。它允许 DocFX 从 OpenAPI 规范生成 HTML 页面。OpenAPI 也被称为 [Swagger](https://swagger.io/)。
+* [DocAssembler 🆕](./src/DocAssembler): Assemble documentation and resources from various locations on disk and bring them together in one place. Can restructure the structure, where the links are changed to the correct location.
+* [DocFxTocGenerator](./src/DocFxTocGenerator): Generate YAML table of contents (TOC) for DocFX. Has functionality for configuration file order and documentation and folder names.
+* [DocLinkChecker](./src/DocLinkChecker): Validate links in documentation and check for orphaned attachments in `.attachments` folders. The tool will indicate if there are errors or warnings, so it can be used in CI pipelines. It can also automatically clean up orphaned attachments. And can validate table syntax.
+* [DocLanguageTranslator](./src/DocLanguageTranslator): Allows to automatically generate and translate missing files, or identify missing files in multi-language pattern directories.
+* [DocFxOpenApi](./src/DocFxOpenApi): Convert existing [OpenAPI](https://www.openapis.org/) specification files to DocFX compatible format (OpenAPI v2 JSON files). It allows DocFX to generate HTML pages from OpenAPI specifications. OpenAPI is also known as [Swagger](https://swagger.io/).
 
-## 创建 PR
+## Creating PRs
 
-主分支是受保护的。功能和修复只能通过 PR 来完成。确保为 PR 使用适当的标题，并保持尽可能小的范围。如果您希望 PR 出现在变更日志中，您必须为 PR 提供一个或多个标签。使用的标签列表如下：
+The main branch is protected. Features and fixes can only be done through PRs. Make sure to use appropriate titles for PRs and keep them as small as possible in scope. If you want a PR to appear in the changelog, you must provide one or more labels for the PR. The list of labels used is as follows:
 
-| 类别 | 描述 | 标签 |
+| Category | Description | Tags |
 | --- | --- | --- |
-| 🚀 功能 | 新功能或修改的功能 | feature, enhancement |
-| 🐛 修复 | 所有（错误）修复 | fix, bug |
-| 📄 文档 | 文档添加或更改 | documentation |
+| 🚀 Feature | New or modified functionality | feature, enhancement |
+| 🐛 Fix | All (bug) fixes | fix, bug |
+| 📄 Documentation | Documentation additions or changes | documentation |
 
-## 构建和发布
+## Building and Publishing
 
-如果您在本地机器上有这个仓库，您可以运行与我们工作流中相同的脚本来构建和打包。要构建工具，请使用 **build** 脚本。在 PowerShell 中运行此命令：
+If you have this repository on your local machine, you can run the same scripts as in our workflows to build and package. To build the tools, use the **build** script. Run this command in PowerShell:
 
 ```PowerShell
 .\build.ps1
 ```
 
-此脚本的结果是一个包含所有解决方案可执行文件的输出文件夹。它们都作为单个 exe 发布，没有框架。它们依赖于环境中安装的 .NET 5。LICENSE 文件也被复制到输出文件夹。然后此文件夹的内容被压缩到根目录中名为 'tools.zip' 的 zip 文件中。
+The result of this script is an output folder containing all solution executables. They are all published as single exe, without framework. They depend on .NET 5 installed in the environment. The LICENSE file is also copied to the output folder. Then the contents of this folder are zipped into a zip file called 'tools.zip' in the root.
 
-要打包和发布工具，您必须首先运行 **build** 脚本。接下来您可以运行我们也在工作流中使用的 **pack** 脚本。在 PowerShell 中运行此命令，其中您提供正确的版本：
+To package and publish the tools, you must first run the **build** script. Next you can run the **pack** script that we also use in our workflows. Run this command in PowerShell, where you provide the correct version:
 
 ```PowerShell
 .\pack.ps1 -publish -version "1.0.0"
 ```
 
-该脚本确定 tools.zip 的哈希值，更改 Chocolatey nuspec 和安装脚本以包含哈希值和正确的版本。然后创建 Chocolatey 包。如果设置了包含 Chocolatey 发布使用密钥的 **CHOCO_TOKEN** 环境变量，脚本还将发布包到 Chocolatey。否则会给出跳过发布步骤的警告。
+The script determines the hash of tools.zip, changes the Chocolatey nuspec and installation scripts to include the hash and the correct version. Then it creates the Chocolatey package. If the **CHOCO_TOKEN** environment variable is set, which contains the Chocolatey publish usage key, the script will also publish the package to Chocolatey. Otherwise a warning is given that the publish step is skipped.
 
-如果省略 -publish 参数，脚本将以开发模式运行。它不会发布到 Chocolatey，并会输出 Chocolatey 文件的更改以供检查。
+If the -publish parameter is omitted, the script will run in development mode. It will not publish to Chocolatey and will output the Chocolatey file changes for inspection.
 
 > [!NOTE]
-> 如果您在本地运行 **pack** 脚本，文件会被更改（*deploy\chocolatey\docfx-companion-tools.nuspec* 和 *deploy\chocolatey\tools\chocolateyinstall.ps1*）。最好不要将这些提交到仓库中，尽管这不是秘密信息。下次运行仍会覆盖正确的值。
+> If you run the **pack** script locally, files are changed (*deploy\chocolatey\docfx-companion-tools.nuspec* and *deploy\chocolatey\tools\chocolateyinstall.ps1*). It's best not to commit these to the repository, although this is not secret information. The next run will still overwrite with the correct values.
 
-## 🔄 GitHub Flow & 自动发布
+## 🔄 GitHub Flow & Auto Publishing
 
-### 自动 EXE 发布
-我们现在支持通过 GitHub Flow 自动发布 Windows EXE 版本：
+### Auto EXE Publishing
+We now support automatic Windows EXE publishing through GitHub Flow:
 
-#### 方法一：通过 Git 标签（推荐）
+#### Method 1: Via Git Tag (Recommended)
 ```bash
-# 创建并推送版本标签
+# Create and push version tag
 git tag v1.0.0
 git push origin v1.0.0
 ```
 
-#### 方法二：手动触发
-访问 GitHub Actions 页面，运行 "Release EXE on Tag" 工作流。
+#### Method 2: Manual Trigger
+Visit the GitHub Actions page and run the "Release EXE on Tag" workflow.
 
-### 自动化功能
-- ✅ 构建所有工具为 Windows 单文件 EXE
-- ✅ 创建包含所有工具的 ZIP 包
-- ✅ 在 GitHub 上创建 Release
-- ✅ 发布到 NuGet
-- ✅ 自动生成变更日志
+### Automation Features
+- ✅ Build all tools as Windows single-file EXEs
+- ✅ Create ZIP package containing all tools
+- ✅ Create Release on GitHub
+- ✅ Publish to NuGet
+- ✅ Auto-generate changelog
 
-### 下载 EXE 版本
-发布完成后，您可以在 [GitHub Releases](https://github.com/lusipad/docfx-companion-tools/releases) 页面下载 `tools.zip` 文件，解压后即可使用所有工具。
+### Download EXE Version
+After publishing is complete, you can download the `tools.zip` file from the [GitHub Releases](https://github.com/lusipad/docfx-companion-tools/releases) page, unzip it and use all tools.
 
-详细信息请参考：[GitHub Flow 文档](.github/GITHUB_FLOW.md)
+For more details, see: [GitHub Flow Documentation](.github/GITHUB_FLOW.md)
 
-## 传统发布流程
+## Traditional Publishing Flow
 
-如果您有一个或多个 PR 并想发布新版本，只需确保所有 PR 都根据需要标记（见上文）并合并到主分支中。在主分支上手动运行手动 **Release & Publish** 工作流。这将提升版本，创建发布并向 Chocolatey 发布新包。
+If you have one or more PRs and want to publish a new version, just make sure all PRs are tagged as needed (see above) and merged into the main branch. Manually run the manual **Release & Publish** workflow on the main branch. This will bump the version, create a release and publish a new package to Chocolatey.
 
-## 安装
+## Installation
 
 ### Chocolatey
 
-可以通过下载 [release](https://github.com/Ellerbach/docfx-companion-tools/releases) 的 zip 文件或使用 [Chocolatey](https://chocolatey.org/install) 来安装工具，如下所示：
+You can install the tools by downloading the zip file from the [release](https://github.com/Ellerbach/docfx-companion-tools/releases) or by using [Chocolatey](https://chocolatey.org/install) as follows:
 
 ```shell
 choco install docfx-companion-tools
 ```
 
 > [!NOTE]
-> 工具期望在本地安装 .NET Framework 6。如果您需要在更高的框架中运行它们，
-> 添加 `--roll-forward Major` 作为参数，如下所示：
+> The tools expect .NET Framework 6 to be installed locally. If you need to run them on a higher framework,
+> add `--roll-forward Major` as a parameter, like this:
 > `~/.dotnet/tools/DocLinkChecker --roll-forward Major`
 
 ### dotnet tool
 
-您也可以通过 `dotnet tool` 安装工具。
+You can also install the tools via `dotnet tool`.
 
 ```shell
 dotnet tool install DocAssembler -g
@@ -103,9 +103,9 @@ dotnet tool install DocLinkChecker -g
 dotnet tool install DocFxOpenApi -g
 ```
 
-### 使用
+### Usage
 
-一旦以这种方式安装了工具，您就可以直接从命令行使用它们。例如：
+Once the tools are installed in this way, you can use them directly from the command line. For example:
 
 ```PowerShell
 DocFxTocGenerator -d .\docs -vs --indexing NotExists
@@ -113,38 +113,38 @@ DocLanguageTranslator -d .\docs\en -k <key> -v
 DocLinkChecker -d .\docs -va
 ```
 
-## CI 管道示例
+## CI Pipeline Examples
 
-* [文档构建管道](./PipelineExamples/documentation-build.yml)：使用 [DocFxTocGenerator](./src/DocFxTocGenerator) 生成目录和使用 DocFx 生成网站的示例管道。此示例还将发布到 Azure App Service。
-* [文档验证管道](./PipelineExamples/documentation-validation.yml)：使用 [markdownlint](https://github.com/markdownlint/markdownlint) 验证 markdown 样式和使用 [DocLinkChecker](./src/DocLinkChecker) 验证链接和附件的示例管道。
+* [Documentation build pipeline](./PipelineExamples/documentation-build.yml): Example pipeline that uses [DocFxTocGenerator](./src/DocFxTocGenerator) to generate table of contents and DocFx to generate the website. This example also publishes to Azure App Service.
+* [Documentation validation pipeline](./PipelineExamples/documentation-validation.yml): Example pipeline that uses [markdownlint](https://github.com/markdownlint/markdownlint) to validate markdown style and [DocLinkChecker](./src/DocLinkChecker) to validate links and attachments.
 
 ## Docker
 
-构建 Docker 镜像。以下示例基于 `DocLinkChecker`，为其他工具相应调整 `--tag` 和 `--build-arg`。
+Build Docker image. The following example is based on `DocLinkChecker`, adjust `--tag` and `--build-arg` accordingly for other tools.
 
 ```shell
 docker build --tag doclinkchecker:latest --build-arg tool=DocLinkChecker -f Dockerfile .
 ```
 
-从 `PowerShell` 运行：
+Run from `PowerShell`:
 
 ```PowerShell
 docker run --rm -v ${PWD}:/workspace doclinkchecker:latest -d /workspace
 ```
 
-从 Linux/macOS `shell` 运行：
+Run from Linux/macOS `shell`:
 
 ```shell
 docker run --rm -v $(pwd):/workspace doclinkchecker:latest -d /workspace
 ```
 
-## 文档
+## Documentation
 
-* [为开发人员使用 Markdownlint 的指南](./DocExamples/docs/markdownlint.md)。
-* [为开发人员创建 Markdown 文档的指南](./DocExamples/docs/markdown-creation.md)。这包含模式以及技巧和方法。
-* [为开发人员提供最终用户文档的指南](./DocExamples/docs/enduser-documentation.md)。
-* [正确使用和支持 Mermaid 的特定元素](./DocExamples/docs/ui-specific-elements.md)。
+* [Guide for developers to use Markdownlint](./DocExamples/docs/markdownlint.md).
+* [Guide for developers to create Markdown documentation](./DocExamples/docs/markdown-creation.md). This contains patterns as well as tips and tricks.
+* [Guide for developers for end-user documentation](./DocExamples/docs/enduser-documentation.md).
+* [Correct use and support of specific elements with Mermaid](./DocExamples/docs/ui-specific-elements.md).
 
-## 许可证
+## License
 
-请阅读主要的 [许可证文件](LICENSE) 和子文件夹许可证文件以及 [第三方通知](THIRD-PARTY-NOTICES.TXT)。这些工具大部分来自与 [ZF](https://www.zf.com/) 合作完成的工作。
+Please read the main [license file](LICENSE) and subfolder license files as well as the [third party notices](THIRD-PARTY-NOTICES.TXT). Most of these tools originate from work done in cooperation with [ZF](https://www.zf.com/).

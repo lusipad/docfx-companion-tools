@@ -44,6 +44,7 @@ Options:
                                                               generated for those folders. A depth of 0 is the root
                                                               only (default behavior).
   --camelCase                                                 Use camel casing for titles.
+  -l, --language <language>                                   Language for help messages and output. Supported values: en, english, zh, chinese, 中文. Default is based on system culture (Chinese for non-English systems).
   --version                                                   Show version information
   -?, -h, --help                                              Show help and usage information
 ```

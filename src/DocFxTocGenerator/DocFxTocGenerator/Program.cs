@@ -66,6 +66,10 @@ var useHeadingTitleOption = new Option<bool>(
 var globalIgnoreOption = new Option<string[]>(
     name: "--globalIgnore",
     description: "Global ignore patterns for files and folders. Can be used multiple times. Supports wildcards like *.design or .design.");
+var languageOption = new Option<string>(
+    name: "--language",
+    description: "Language for help messages and output. Supported values: en, english, zh, chinese, 中文. Default is based on system culture (Chinese for non-English systems).");
+languageOption.AddAlias("-l");
 
 // deprecated options
 var deprecatedIndexOption = new Option<bool>(
@@ -106,6 +110,7 @@ rootCommand.AddOption(multiTocOption);
 rootCommand.AddOption(camelCaseOption);
 rootCommand.AddOption(useHeadingTitleOption);
 rootCommand.AddOption(globalIgnoreOption);
+rootCommand.AddOption(languageOption);
 
 // deprecated: replaced by indexing flag
 rootCommand.AddOption(deprecatedIndexOption);
@@ -116,6 +121,12 @@ rootCommand.SetHandler(async (context) =>
 {
     // setup logging
     SetLogLevel(context);
+
+    // Determine language
+    var languageString = context.ParseResult.GetValueForOption(languageOption);
+    var language = string.IsNullOrEmpty(languageString)
+        ? LanguageHelper.GetDefaultLanguage()
+        : LanguageHelper.ParseLanguage(languageString!);
 
     LogParameters(
         context.ParseResult.GetValueForOption(docsFolder)?.FullName!,
@@ -130,6 +141,7 @@ rootCommand.SetHandler(async (context) =>
         context.ParseResult.GetValueForOption(camelCaseOption),
         context.ParseResult.GetValueForOption(useHeadingTitleOption),
         context.ParseResult.GetValueForOption(globalIgnoreOption),
+        language,
         context.ParseResult.GetValueForOption(deprecatedIndexOption),
         context.ParseResult.GetValueForOption(deprecatedNoIndexWithOneFileOption));
 
@@ -156,7 +168,8 @@ rootCommand.SetHandler(async (context) =>
         context.ParseResult.GetValueForOption(multiTocOption),
         context.ParseResult.GetValueForOption(camelCaseOption),
         context.ParseResult.GetValueForOption(useHeadingTitleOption),
-        context.ParseResult.GetValueForOption(globalIgnoreOption));
+        context.ParseResult.GetValueForOption(globalIgnoreOption),
+        language);
 });
 
 return await rootCommand.InvokeAsync(args);
@@ -174,7 +187,8 @@ async Task<ReturnCode> GenerateTocAsync(
     int tocDepth,
     bool camelCasing,
     bool useHeadingTitle,
-    string[]? globalIgnorePatterns)
+    string[]? globalIgnorePatterns,
+    LanguageHelper.Language language)
 {
     // setup services
     ILogger logger = GetLogger();
@@ -231,6 +245,7 @@ void LogParameters(
     bool camelCasing,
     bool useHeadingTitle,
     string[]? globalIgnorePatterns,
+    LanguageHelper.Language language,
     bool generateIndex,
     bool noIndexWithOneFile)
 {
@@ -259,6 +274,7 @@ void LogParameters(
     logger!.LogInformation($"TOC depth       : {tocDepth}{(tocDepth > 0 ? string.Empty : " (1 TOC hierarchy)")}");
     logger!.LogInformation($"Camel casing    : {camelCasing}");
     logger!.LogInformation($"Use heading title: {useHeadingTitle}");
+    logger!.LogInformation($"Language         : {LanguageHelper.GetDisplayName(language)}");
     if (globalIgnorePatterns != null && globalIgnorePatterns.Length > 0)
     {
         logger!.LogInformation($"Global ignore   : {string.Join(", ", globalIgnorePatterns)}");

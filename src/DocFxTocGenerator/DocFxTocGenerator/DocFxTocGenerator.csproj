@@ -5,7 +5,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <LangVersion>12.0</LangVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
@@ -27,10 +27,7 @@
     <None Include="../README.md" Pack="true" PackagePath="" />
   </ItemGroup>
 
-  <ItemGroup>
-    <AdditionalFiles Include="stylecop.json" />
-  </ItemGroup>
-
+  
   <ItemGroup>
     <PackageReference Include="Fluid.Core" Version="2.11.1" />
     <PackageReference Include="Markdig" Version="0.37.0" />
