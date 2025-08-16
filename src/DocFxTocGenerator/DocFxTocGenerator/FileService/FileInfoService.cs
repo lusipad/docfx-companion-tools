@@ -163,6 +163,19 @@ public class FileInfoService
         string markdownFilePath = _fileService.GetFullPath(filePath);
         string markdown = _fileService.ReadAllText(markdownFilePath);
 
+        // Simple approach: find the first line starting with #
+        using var reader = new StringReader(markdown);
+        string? line;
+        while ((line = reader.ReadLine()) != null)
+        {
+            line = line.Trim();
+            if (line.StartsWith("# ", StringComparison.Ordinal))
+            {
+                return line.Substring(1).Trim();
+            }
+        }
+
+        // Fallback to Markdig parsing for more complex cases
         MarkdownPipeline pipeline = new MarkdownPipelineBuilder()
         .UseAdvancedExtensions()
         .Build();

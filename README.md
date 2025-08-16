@@ -7,7 +7,7 @@ This repository contains a set of tools, templates, tips and tricks to make your
 ## Tools
 
 * [DocAssembler 🆕](./src/DocAssembler): Assemble documentation and resources from various locations on disk and bring them together in one place. Can restructure the structure, where the links are changed to the correct location.
-* [DocFxTocGenerator](./src/DocFxTocGenerator): Generate YAML table of contents (TOC) for DocFX. Has functionality for configuration file order and documentation and folder names.
+* [DocFxTocGenerator](./src/DocFxTocGenerator): Generate YAML table of contents (TOC) for DocFX. Has functionality for configuration file order and documentation and folder names. **Fixed**: Chinese title truncation issue and TOC format improvements.
 * [DocLinkChecker](./src/DocLinkChecker): Validate links in documentation and check for orphaned attachments in `.attachments` folders. The tool will indicate if there are errors or warnings, so it can be used in CI pipelines. It can also automatically clean up orphaned attachments. And can validate table syntax.
 * [DocLanguageTranslator](./src/DocLanguageTranslator): Allows to automatically generate and translate missing files, or identify missing files in multi-language pattern directories.
 * [DocFxOpenApi](./src/DocFxOpenApi): Convert existing [OpenAPI](https://www.openapis.org/) specification files to DocFX compatible format (OpenAPI v2 JSON files). It allows DocFX to generate HTML pages from OpenAPI specifications. OpenAPI is also known as [Swagger](https://swagger.io/).
