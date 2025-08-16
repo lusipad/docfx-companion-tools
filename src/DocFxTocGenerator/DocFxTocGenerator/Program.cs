@@ -63,6 +63,9 @@ var camelCaseOption = new Option<bool>(
 var useHeadingTitleOption = new Option<bool>(
     name: "--useHeadingTitle",
     description: "Use the first H1 heading from markdown files as the display name instead of filename.");
+var globalIgnoreOption = new Option<string[]>(
+    name: "--globalIgnore",
+    description: "Global ignore patterns for files and folders. Can be used multiple times. Supports wildcards like *.design or .design.");
 
 // deprecated options
 var deprecatedIndexOption = new Option<bool>(
@@ -102,6 +105,7 @@ rootCommand.AddOption(orderingOption);
 rootCommand.AddOption(multiTocOption);
 rootCommand.AddOption(camelCaseOption);
 rootCommand.AddOption(useHeadingTitleOption);
+rootCommand.AddOption(globalIgnoreOption);
 
 // deprecated: replaced by indexing flag
 rootCommand.AddOption(deprecatedIndexOption);
@@ -125,6 +129,7 @@ rootCommand.SetHandler(async (context) =>
         context.ParseResult.GetValueForOption(multiTocOption),
         context.ParseResult.GetValueForOption(camelCaseOption),
         context.ParseResult.GetValueForOption(useHeadingTitleOption),
+        context.ParseResult.GetValueForOption(globalIgnoreOption),
         context.ParseResult.GetValueForOption(deprecatedIndexOption),
         context.ParseResult.GetValueForOption(deprecatedNoIndexWithOneFileOption));
 
@@ -150,7 +155,8 @@ rootCommand.SetHandler(async (context) =>
         context.ParseResult.GetValueForOption(orderingOption),
         context.ParseResult.GetValueForOption(multiTocOption),
         context.ParseResult.GetValueForOption(camelCaseOption),
-        context.ParseResult.GetValueForOption(useHeadingTitleOption));
+        context.ParseResult.GetValueForOption(useHeadingTitleOption),
+        context.ParseResult.GetValueForOption(globalIgnoreOption));
 });
 
 return await rootCommand.InvokeAsync(args);
@@ -167,7 +173,8 @@ async Task<ReturnCode> GenerateTocAsync(
     TocOrderStrategy orderStrategy,
     int tocDepth,
     bool camelCasing,
-    bool useHeadingTitle)
+    bool useHeadingTitle,
+    string[]? globalIgnorePatterns)
 {
     // setup services
     ILogger logger = GetLogger();
@@ -176,7 +183,7 @@ async Task<ReturnCode> GenerateTocAsync(
     try
     {
         // first, retrieve data for documentation from the files
-        ContentInventoryAction retrieval = new(docsFolder, useOrder, useIngore, useOverride, camelCasing, useHeadingTitle, fileService, logger);
+        ContentInventoryAction retrieval = new(docsFolder, useOrder, useIngore, useOverride, camelCasing, useHeadingTitle, globalIgnorePatterns, fileService, logger);
         ReturnCode ret = await retrieval.RunAsync();
 
         if (ret == 0 && retrieval.RootFolder != null)
@@ -223,6 +230,7 @@ void LogParameters(
     int tocDepth,
     bool camelCasing,
     bool useHeadingTitle,
+    string[]? globalIgnorePatterns,
     bool generateIndex,
     bool noIndexWithOneFile)
 {
@@ -251,6 +259,10 @@ void LogParameters(
     logger!.LogInformation($"TOC depth       : {tocDepth}{(tocDepth > 0 ? string.Empty : " (1 TOC hierarchy)")}");
     logger!.LogInformation($"Camel casing    : {camelCasing}");
     logger!.LogInformation($"Use heading title: {useHeadingTitle}");
+    if (globalIgnorePatterns != null && globalIgnorePatterns.Length > 0)
+    {
+        logger!.LogInformation($"Global ignore   : {string.Join(", ", globalIgnorePatterns)}");
+    }
 }
 
 void SetLogLevel(InvocationContext context)

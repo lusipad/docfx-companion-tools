@@ -6,7 +6,10 @@ using System.Diagnostics;
 using System.Linq;
 using DocFxTocGenerator.ConfigFiles;
 using DocFxTocGenerator.FileService;
+using DocFxTocGenerator.Utils;
 using Microsoft.Extensions.Logging;
+
+#pragma warning disable CS0618 // Allow obsolete constructor for backward compatibility
 
 namespace DocFxTocGenerator.Actions;
 
@@ -23,6 +26,7 @@ public class ContentInventoryAction
     private readonly bool _useOverride;
     private readonly bool _camelCasing;
     private readonly bool _useHeadingTitle;
+    private readonly GlobalIgnoreMatcher _globalIgnoreMatcher;
 
     private readonly IFileService? _fileService;
     private readonly ConfigFilesService _configService;
@@ -41,6 +45,7 @@ public class ContentInventoryAction
     /// <param name="useOverride">Use the .override configuration per directory.</param>
     /// <param name="camelCasing">Use camel casing for titles.</param>
     /// <param name="useHeadingTitle">Use the first H1 heading from markdown files as the display name instead of filename.</param>
+    /// <param name="globalIgnorePatterns">Global ignore patterns.</param>
     /// <param name="fileService">File service.</param>
     /// <param name="logger">Logger.</param>
     public ContentInventoryAction(
@@ -50,8 +55,9 @@ public class ContentInventoryAction
         bool useOverride,
         bool camelCasing,
         bool useHeadingTitle,
-        IFileService fileService,
-        ILogger logger)
+        string[]? globalIgnorePatterns = null,
+        IFileService? fileService = null,
+        ILogger? logger = null)
     {
         _docsFolder = docsFolder;
 
@@ -61,10 +67,45 @@ public class ContentInventoryAction
         _camelCasing = camelCasing;
         _useHeadingTitle = useHeadingTitle;
 
-        _fileService = fileService;
-        _logger = logger;
-        _configService = new(fileService, logger);
-        _fileDataService = new(camelCasing, useHeadingTitle, fileService, logger);
+        _fileService = fileService ?? new DocFxTocGenerator.FileService.FileService();
+        _logger = logger ?? GetLogger();
+        _configService = new(_fileService, _logger);
+        _globalIgnoreMatcher = new GlobalIgnoreMatcher(globalIgnorePatterns, _logger);
+        _fileDataService = new(camelCasing, useHeadingTitle, _fileService, _logger);
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ContentInventoryAction"/> class.
+    /// </summary>
+    /// <param name="docsFolder">Documentation folder.</param>
+    /// <param name="useOrder">Use the .order configuration per directory.</param>
+    /// <param name="useIgnore">Use the .ignore configuration per directory.</param>
+    /// <param name="useOverride">Use the .override configuration per directory.</param>
+    /// <param name="camelCasing">Use camel casing for titles.</param>
+    /// <param name="useHeadingTitle">Use the first H1 heading from markdown files as the display name instead of filename.</param>
+    /// <param name="fileService">File service.</param>
+    /// <param name="logger">Logger.</param>
+    [Obsolete("Use constructor with globalIgnorePatterns parameter")]
+    public ContentInventoryAction(
+        string docsFolder,
+        bool useOrder,
+        bool useIgnore,
+        bool useOverride,
+        bool camelCasing,
+        bool useHeadingTitle,
+        IFileService fileService,
+        ILogger logger)
+        : this(docsFolder, useOrder, useIgnore, useOverride, camelCasing, useHeadingTitle, null, fileService, logger)
+    {
+    }
+
+    /// <summary>
+    /// Gets a default logger.
+    /// </summary>
+    /// <returns>Logger instance.</returns>
+    private static ILogger GetLogger()
+    {
+        return new LoggerFactory().CreateLogger(nameof(ContentInventoryAction));
     }
 
     /// <summary>
@@ -186,7 +227,15 @@ public class ContentInventoryAction
 
         foreach (var file in files)
         {
-            folder.Files.Add(_fileDataService.CreateFileData(folder, file));
+            var fileName = Path.GetFileName(file);
+            if (!_globalIgnoreMatcher.ShouldIgnore(fileName, isFile: true))
+            {
+                folder.Files.Add(_fileDataService.CreateFileData(folder, file));
+            }
+            else
+            {
+                _logger.LogInformation($"Skipping file '{file}' - matches global ignore pattern.");
+            }
         }
 
         // order on sequence and display name
@@ -205,17 +254,26 @@ public class ContentInventoryAction
 
         foreach (var subdir in subdirs)
         {
-            if (!folder.IgnoreList.Contains(Path.GetFileName(subdir)))
-            {
-                var subfolder = GetFolderData(folder, subdir);
-                if (subfolder != null)
-                {
-                    folder.Folders.Add(subfolder);
-                }
-            }
-            else
+            var subdirName = Path.GetFileName(subdir);
+
+            // Check local ignore first
+            if (folder.IgnoreList.Contains(subdirName))
             {
                 _logger.LogInformation($"Skipping sub-directory '{subdir}' as it is marked as such in the .ignore file.");
+                continue;
+            }
+
+            // Check global ignore
+            if (_globalIgnoreMatcher.ShouldIgnore(subdirName, isFile: false))
+            {
+                _logger.LogInformation($"Skipping sub-directory '{subdir}' - matches global ignore pattern.");
+                continue;
+            }
+
+            var subfolder = GetFolderData(folder, subdir);
+            if (subfolder != null)
+            {
+                folder.Folders.Add(subfolder);
             }
         }
 
