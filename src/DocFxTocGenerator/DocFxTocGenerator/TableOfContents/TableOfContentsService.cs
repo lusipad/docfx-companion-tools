@@ -110,6 +110,83 @@ public class TableOfContentsService
     }
 
     /// <summary>
+    /// Serialize a folder to the table of contents at root level (after "items:").
+    /// </summary>
+    /// <param name="writer">Writer to use for output.</param>
+    /// <param name="root">the root toc item to serialize.</param>
+    /// <param name="maxDepth">Maximum depth for TOCs. 0 = only the root.</param>
+    /// <param name="startPath">Start path to cut. If left blank and we have a multi toc, it's calculated and passed.</param>
+    public void SerializeRootTocItem(IndentedTextWriter writer, TocItem root, int maxDepth, string startPath = "")
+    {
+        bool rootOnly = maxDepth != 0 && root.Depth < maxDepth;
+
+        // If we have to build the TOC for muliple levels (maxDepth != 0),
+        // each TOC references childs as relative to the current folder.
+        // For that purpose, we calculate or pass on the root folder if we're
+        // generating a hierarchy.
+        string rootPath = startPath;
+        int rootPathLength = 0;
+        if (maxDepth != 0)
+        {
+            if (string.IsNullOrEmpty(startPath))
+            {
+                // first root to process, so determine the parent of the current level.
+                rootPath = Path.GetDirectoryName(((FolderData)root.Base!).RelativePath)!;
+            }
+
+            // calculate the length to cut from the parent path + /
+            rootPathLength = !string.IsNullOrEmpty(rootPath) ? rootPath.Length + 1 : 0;
+        }
+
+        // write the entry-point for the folder, only in highest level.
+        if (rootOnly || root.Depth == 0)
+        {
+            writer.WriteLine($"- name: {root.Name}");
+            if (!string.IsNullOrEmpty(root.Href))
+            {
+                writer.WriteLine($"  href: {root.Href.Substring(rootPathLength)}");
+            }
+        }
+
+        if (root.Items.Count > 0)
+        {
+            foreach (var item in root.Items)
+            {
+                if (item.IsFolder && !rootOnly)
+                {
+                    writer.WriteLine($"- name: {item.Name}");
+                    if (!string.IsNullOrEmpty(item.Href))
+                    {
+                        writer.WriteLine($"  href: {item.Href.Substring(rootPathLength)}");
+                    }
+
+                    writer.Indent++;
+                    writer.WriteLine("items:");
+                    SerializeTocItem(writer, item, maxDepth, rootPath);
+                    writer.Indent--;
+                }
+                else
+                {
+                    string href = item.Href;
+                    if (item.IsFolder && rootOnly)
+                    {
+                        // when we reference folders, we know we're referencing a new TOC level
+                        // as this only happens in multi-toc mode. In that case, we always
+                        // reference the toc file in that folder.
+                        href = Path.Combine(((FolderData)item.Base!).RelativePath, "toc.yml").NormalizePath();
+                    }
+
+                    writer.WriteLine($"- name: {item.Name}");
+                    if (!string.IsNullOrEmpty(href))
+                    {
+                        writer.WriteLine($"  href: {href.Substring(rootPathLength)}");
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// Serialize a folder to the table of contents.
     /// </summary>
     /// <param name="writer">Writer to use for output.</param>
@@ -218,7 +295,17 @@ public class TableOfContentsService
         using IndentedTextWriter writer = new IndentedTextWriter(sw, "  ");
         await writer.WriteLineAsync("# This is an automatically generated file");
 
-        SerializeTocItem(writer, toc, maxDepth, toc.Base!.RelativePath!);
+        if (toc.Depth == 0)
+        {
+            // Root level TOC file - include "items:" header
+            await writer.WriteLineAsync("items:");
+            SerializeRootTocItem(writer, toc, maxDepth, toc.Base!.RelativePath!);
+        }
+        else
+        {
+            // Sub-folder TOC file - directly serialize items
+            SerializeTocItem(writer, toc, maxDepth, toc.Base!.RelativePath!);
+        }
 
         if (maxDepth > 0 && toc.Depth < maxDepth)
         {
